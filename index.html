@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-light: #60a5fa;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+        
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+        
+        .glass-effect {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            transform: scale(1.02);
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hero-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.1) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        
+        .input-field {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+        
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .app-item {
+            transition: all 0.3s;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border);
+        }
+        
+        .app-item:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: var(--primary);
+        }
+        
+        .icon-container {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+        
+        .stat-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border);
+        }
+        
+        .stat-icon-blue { background: rgba(59, 130, 246, 0.15); color: var(--primary-light); }
+        .stat-icon-green { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .stat-icon-purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+        .stat-icon-orange { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-light);
+        }
+        
+        /* Chart Bars */
+        .chart-bar {
+            transition: all 0.3s;
+        }
+        
+        .chart-bar:hover {
+            opacity: 0.8;
+        }
+        
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--border);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .toggle-switch.active {
+            background: var(--success);
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            right: 2px;
+            transition: all 0.3s;
+        }
+        
+        .toggle-switch.active::after {
+            right: 26px;
+        }
+        
+        /* Drag and Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        
+        /* Progress Ring */
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        
+        /* Activity Log */
+        .activity-item {
+            border-right: 2px solid var(--border);
+            padding-right: 20px;
+            margin-right: 10px;
+            position: relative;
+            padding-bottom: 20px;
+        }
+        
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+        
+        .activity-item:last-child {
+            border-right: none;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="hero-pattern">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass-effect border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <div class="w-10 h-10 icon-container rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <i class="fas fa-shield-alt text-xl text-white"></i>
+                    </div>
+                    <span class="text-2xl font-bold gradient-text">لوحة التحكم</span>
+                </div>
+                <div class="flex items-center space-x-4 space-x-reverse" id="navButtons">
+                    <div class="hidden md:flex items-center space-x-4 space-x-reverse text-sm text-slate-400">
+                        <span id="adminEmail"></span>
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    </div>
+                    <a href="index.html" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition border border-slate-600 flex items-center text-sm">
+                        <i class="fas fa-store ml-2"></i> المتجر
+                    </a>
+                    <button onclick="logout()" id="logoutBtn" class="hidden px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition border border-red-500/50 flex items-center text-sm">
+                        <i class="fas fa-sign-out-alt ml-2"></i> تسجيل الخروج
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-20 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        
+        <!-- Login Section -->
+        <div id="loginSection" class="min-h-[80vh] flex items-center justify-center fade-in">
+            <div class="glass-effect rounded-2xl p-8 w-full max-w-md border border-slate-700">
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 mx-auto mb-4 icon-container rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <i class="fas fa-lock text-3xl text-white"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-2 text-slate-100">تسجيل دخول المسؤول</h2>
+                    <p class="text-slate-400">الرجاء إدخال بيانات الاعتماد الخاصة بك</p>
+                </div>
+                
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-slate-300">البريد الإلكتروني</label>
+                            <div class="relative">
+                                <input type="email" id="loginEmail" required
+                                       class="w-full px-4 py-3 rounded-lg input-field text-right pr-10"
+                                       placeholder="admin@example.com">
+                                <i class="fas fa-envelope absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-slate-300">كلمة المرور</label>
+                            <div class="relative">
+                                <input type="password" id="loginPassword" required
+                                       class="w-full px-4 py-3 rounded-lg input-field text-right pr-10"
+                                       placeholder="••••••••">
+                                <i class="fas fa-lock absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <label class="flex items-center text-slate-400 cursor-pointer">
+                                <input type="checkbox" class="ml-2 rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-500">
+                                تذكرني
+                            </label>
+                            <a href="#" class="text-blue-400 hover:text-blue-300">نسيت كلمة المرور؟</a>
+                        </div>
+                        <button type="submit" id="loginBtn"
+                                class="w-full btn-primary py-3 rounded-lg font-bold text-lg transition flex items-center justify-center">
+                            <span>تسجيل الدخول</span>
+                            <i class="fas fa-arrow-left mr-2"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="loginError" class="hidden mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-center text-sm">
+                    <!-- Error message will appear here -->
+                </div>
+
+                <div class="mt-6 text-center">
+                    <p class="text-slate-500 text-sm">يجب أن يكون لديك حساب مسؤول للوصول</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="hidden fade-in">
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card rounded-2xl p-6 flex items-center space-x-4 space-x-reverse">
+                    <div class="w-14 h-14 rounded-full stat-icon-blue flex items-center justify-center">
+                        <i class="fas fa-mobile-alt text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-sm">إجمالي التطبيقات</p>
+                        <p class="text-2xl font-bold text-slate-100" id="totalApps">0</p>
+                    </div>
+                </div>
+                <div class="stat-card rounded-2xl p-6 flex items-center space-x-4 space-x-reverse">
+                    <div class="w-14 h-14 rounded-full stat-icon-green flex items-center justify-center">
+                        <i class="fas fa-download text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-sm">إجمالي التحميلات</p>
+                        <p class="text-2xl font-bold text-slate-100" id="totalDownloads">0</p>
+                    </div>
+                </div>
+                <div class="stat-card rounded-2xl p-6 flex items-center space-x-4 space-x-reverse">
+                    <div class="w-14 h-14 rounded-full stat-icon-purple flex items-center justify-center">
+                        <i class="fas fa-eye text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-sm">المشاهدات</p>
+                        <p class="text-2xl font-bold text-slate-100" id="totalViews">0</p>
+                    </div>
+                </div>
+                <div class="stat-card rounded-2xl p-6 flex items-center space-x-4 space-x-reverse">
+                    <div class="w-14 h-14 rounded-full stat-icon-orange flex items-center justify-center">
+                        <i class="fas fa-users text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-sm">المستخدمين النشطين</p>
+                        <p class="text-2xl font-bold text-slate-100" id="activeUsers">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <!-- Add App Form -->
+                    <div class="glass-effect rounded-2xl p-6 border border-slate-700">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold flex items-center text-slate-100">
+                                <i class="fas fa-plus-circle ml-2 text-blue-400"></i>
+                                إضافة تطبيق جديد
+                            </h3>
+                            <div class="flex items-center space-x-2 space-x-reverse text-sm text-slate-400">
+                                <span>نموذج سريع</span>
+                                <div class="toggle-switch" onclick="toggleQuickMode()" id="quickModeToggle"></div>
+                            </div>
+                        </div>
+                        
+                        <form id="addAppForm" onsubmit="handleAddApp(event)">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">اسم التطبيق *</label>
+                                    <input type="text" id="appName" required
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="مثال: واتساب">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">المطور *</label>
+                                    <input type="text" id="appDeveloper" required
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="مثال: Meta Inc.">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">الحجم *</label>
+                                    <input type="text" id="appSize" required
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="مثال: 25MB">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">التصنيف *</label>
+                                    <select id="appCategory" required class="w-full px-4 py-3 rounded-lg input-field">
+                                        <option value="tools">أدوات</option>
+                                        <option value="social">تواصل اجتماعي</option>
+                                        <option value="games">ألعاب</option>
+                                        <option value="education">تعليم</option>
+                                        <option value="entertainment">ترفيه</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">الإصدار</label>
+                                    <input type="text" id="appVersion" 
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="1.0.0" value="1.0.0">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">رابط الأيقونة (مباشر) *</label>
+                                    <input type="url" id="appIcon" required 
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="https://example.com/icon.png">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">رابط صورة العرض (مباشر) *</label>
+                                    <input type="url" id="appScreenshot" required 
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="https://example.com/screenshot.jpg">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">روابط إضافية (مفصولة بفاصلة)</label>
+                                    <input type="text" id="appScreenshots" 
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="رابط1, رابط2, رابط3">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">رابط التحميل (مباشر) *</label>
+                                    <input type="url" id="appDownload" required 
+                                           class="w-full px-4 py-3 rounded-lg input-field" placeholder="https://example.com/app.apk">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium mb-2 text-slate-300">الوصف *</label>
+                                    <textarea id="appDescription" rows="4" required
+                                              class="w-full px-4 py-3 rounded-lg input-field resize-none" 
+                                              placeholder="اكتب وصفاً تفصيلياً للتطبيق..."></textarea>
+                                    <div class="text-left text-xs text-slate-500 mt-1">
+                                        <span id="descCount">0</span>/500 حرف
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex items-center justify-between">
+                                <button type="button" onclick="clearForm()" 
+                                        class="px-6 py-3 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 transition">
+                                    مسح الحقول
+                                </button>
+                                <div class="flex space-x-3 space-x-reverse">
+                                    <button type="button" onclick="previewApp()" 
+                                            class="px-6 py-3 rounded-lg border border-blue-600 text-blue-400 hover:bg-blue-600/10 transition">
+                                        معاينة
+                                    </button>
+                                    <button type="submit" id="submitAppBtn"
+                                            class="btn-primary px-8 py-3 rounded-lg font-bold transition flex items-center">
+                                        <i class="fas fa-upload ml-2"></i> رفع التطبيق
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Apps Management List -->
+                    <div class="glass-effect rounded-2xl p-6 border border-slate-700">
+                        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+                            <h3 class="text-xl font-bold flex items-center text-slate-100">
+                                <i class="fas fa-list ml-2 text-blue-400"></i>
+                                التطبيقات المرفوعة
+                            </h3>
+                            <div class="flex items-center space-x-3 space-x-reverse">
+                                <input type="text" id="adminSearch" placeholder="بحث..." 
+                                       class="px-4 py-2 rounded-lg input-field text-sm" onkeyup="searchAdminApps()">
+                                <button onclick="loadAppsList()" class="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition" title="تحديث">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button onclick="exportData()" class="p-2 text-green-400 hover:bg-green-400/10 rounded-lg transition" title="تصدير">
+                                    <i class="fas fa-file-export"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="appsList" class="space-y-3">
+                            <!-- Apps will be loaded here -->
+                        </div>
+                        
+                        <div id="emptyAppsList" class="hidden text-center py-12">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-slate-800 rounded-full flex items-center justify-center border border-slate-700">
+                                <i class="fas fa-inbox text-2xl text-slate-500"></i>
+                            </div>
+                            <p class="text-slate-400">لا توجد تطبيقات مرفوعة بعد</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    
+                    <!-- Storage Usage -->
+                    <div class="glass-effect rounded-2xl p-6 border border-slate-700">
+                        <h3 class="text-lg font-bold mb-4 text-slate-100">استخدام التخزين</h3>
+                        <div class="flex items-center justify-center mb-4">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="text-slate-700" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+                                <circle class="progress-ring-circle text-blue-500" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" 
+                                        stroke-dasharray="326.72" stroke-dashoffset="100"/>
+                            </svg>
+                            <div class="absolute text-center">
+                                <div class="text-2xl font-bold text-slate-100">70%</div>
+                                <div class="text-xs text-slate-400">مستخدم</div>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between text-slate-400">
+                                <span>التطبيقات</span>
+                                <span>45 MB</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>الصور</span>
+                                <span>120 MB</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>متاح</span>
+                                <span>835 MB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="glass-effect rounded-2xl p-6 border border-slate-700">
+                        <h3 class="text-lg font-bold mb-4 text-slate-100">النشاط الأخير</h3>
+                        <div id="activityLog" class="space-y-0">
+                            <div class="activity-item">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-sm font-bold text-slate-200">تم إضافة تطبيق جديد</span>
+                                    <span class="text-xs text-slate-500">منذ ساعة</span>
+                                </div>
+                                <p class="text-xs text-slate-400">تطبيق واتساب بلس</p>
+                            </div>
+                            <div class="activity-item">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-sm font-bold text-slate-200">تحديث الإحصائيات</span>
+                                    <span class="text-xs text-slate-500">منذ 3 ساعات</span>
+                                </div>
+                                <p class="text-xs text-slate-400">تم تحديث عدد التحميلات</p>
+                            </div>
+                            <div class="activity-item">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="text-sm font-bold text-slate-200">تسجيل دخول</span>
+                                    <span class="text-xs text-slate-500">اليوم</span>
+                                </div>
+                                <p class="text-xs text-slate-400">المسؤول الرئيسي</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="glass-effect rounded-2xl p-6 border border-slate-700">
+                        <h3 class="text-lg font-bold mb-4 text-slate-100">إجراءات سريعة</h3>
+                        <div class="space-y-3">
+                            <button onclick="backupData()" class="w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition flex items-center text-slate-300">
+                                <i class="fas fa-database ml-3 text-blue-400"></i>
+                                نسخ احتياطي للبيانات
+                            </button>
+                            <button onclick="clearCache()" class="w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition flex items-center text-slate-300">
+                                <i class="fas fa-broom ml-3 text-orange-400"></i>
+                                مسح الذاكرة المؤقتة
+                            </button>
+                            <button onclick="viewAnalytics()" class="w-full p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition flex items-center text-slate-300">
+                                <i class="fas fa-chart-line ml-3 text-green-400"></i>
+                                عرض التحليلات
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-lg hidden transition-all duration-300 z-50 border border-emerald-500">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="glass-effect rounded-2xl p-6 max-w-2xl w-full mx-4 border border-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-100">معاينة التطبيق</h3>
+                <button onclick="closePreview()" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="previewContent">
+                <!-- Preview content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-slate-900/90 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="glass-effect rounded-2xl p-6 max-w-md w-full mx-4 border border-slate-700">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/30">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2 text-slate-100">تأكيد الحذف</h3>
+                <p class="text-slate-400">هل أنت متأكد من حذف هذا التطبيق؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            </div>
+            <div class="flex space-x-3 space-x-reverse">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-3 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 transition">
+                    إلغاء
+                </button>
+                <button onclick="confirmDelete()" class="flex-1 px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition">
+                    حذف نهائي
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: 'AIzaSyBqIOpQxyoR2t3WXfkLSq161ts7htQfHMo',
+            authDomain: 'update-c4abc.firebaseapp.com',
+            databaseURL: 'https://update-c4abc-default-rtdb.firebaseio.com',
+            projectId: 'update-c4abc',
+            storageBucket: 'update-c4abc.firebasestorage.app',
+            messagingSenderId: '771065562119',
+            appId: '1:771065562119:android:a9fd4d88071a771f6e96a2'
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Global Variables
+        let currentUser = null;
+        let appToDelete = null;
+        let allAppsData = [];
+
+        // Auth State Listener
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            updateUI();
+        });
+
+        // Update UI based on auth state
+        function updateUI() {
+            const loginSection = document.getElementById('loginSection');
+            const adminDashboard = document.getElementById('adminDashboard');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (currentUser) {
+                loginSection.classList.add('hidden');
+                adminDashboard.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                document.getElementById('adminEmail').textContent = currentUser.email;
+                loadAppsList();
+                loadStats();
+            } else {
+                loginSection.classList.remove('hidden');
+                adminDashboard.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        }
+
+        // Load Statistics
+        function loadStats() {
+            database.ref('apps').once('value').then((snapshot) => {
+                const apps = snapshot.val() || {};
+                const appList = Object.values(apps);
+                
+                const totalDownloads = appList.reduce((sum, app) => sum + (app.downloads || 0), 0);
+                const totalViews = appList.reduce((sum, app) => sum + (app.views || 0), 0);
+                
+                animateNumber('totalApps', appList.length);
+                animateNumber('totalDownloads', totalDownloads);
+                animateNumber('totalViews', totalViews);
+                animateNumber('activeUsers', Math.floor(Math.random() * 100) + 50);
+            });
+        }
+
+        // Animate Number
+        function animateNumber(elementId, target) {
+            const element = document.getElementById(elementId);
+            const duration = 1000;
+            const start = parseInt(element.textContent) || 0;
+            const increment = (target - start) / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= target) || (increment < 0 && current <= target)) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current).toLocaleString();
+            }, 16);
+        }
+
+        // Login Handler
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('loginError');
+
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري تسجيل الدخول...';
+            loginBtn.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showToast('تم تسجيل الدخول بنجاح!');
+                addActivity('تسجيل دخول', 'المسؤول الرئيسي');
+            } catch (error) {
+                errorDiv.textContent = getErrorMessage(error.code);
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loginBtn.innerHTML = '<span>تسجيل الدخول</span><i class="fas fa-arrow-left mr-2"></i>';
+                loginBtn.disabled = false;
+            }
+        }
+
+        // Logout Handler
+        function logout() {
+            auth.signOut().then(() => {
+                showToast('تم تسجيل الخروج بنجاح');
+                document.getElementById('loginForm').reset();
+            });
+        }
+
+        // Error Messages
+        function getErrorMessage(code) {
+            const messages = {
+                'auth/invalid-email': 'البريد الإلكتروني غير صالح',
+                'auth/user-disabled': 'تم تعطيل هذا الحساب',
+                'auth/user-not-found': 'لا يوجد حساب بهذا البريد الإلكتروني',
+                'auth/wrong-password': 'كلمة المرور غير صحيحة',
+                'auth/too-many-requests': 'تم تجاوز عدد المحاولات',
+                'auth/network-request-failed': 'خطأ في الاتصال بالشبكة'
+            };
+            return messages[code] || 'حدث خطأ في تسجيل الدخول';
+        }
+
+        // Toggle Quick Mode
+        function toggleQuickMode() {
+            document.getElementById('quickModeToggle').classList.toggle('active');
+        }
+
+        // Character Count
+        document.getElementById('appDescription')?.addEventListener('input', function() {
+            document.getElementById('descCount').textContent = this.value.length;
+        });
+
+        // Preview App
+        function previewApp() {
+            const name = document.getElementById('appName').value;
+            const developer = document.getElementById('appDeveloper').value;
+            const icon = document.getElementById('appIcon').value;
+            const screenshot = document.getElementById('appScreenshot').value;
+            
+            if (!name || !developer) {
+                showToast('يرجى ملء الحقول المطلوبة أولاً', 'error');
+                return;
+            }
+            
+            const content = `
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <div class="flex items-center gap-4 mb-6">
+                        <img src="${icon}" class="w-20 h-20 rounded-xl" onerror="this.src='https://via.placeholder.com/80'">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-100">${name}</h2>
+                            <p class="text-slate-400">${developer}</p>
+                        </div>
+                    </div>
+                    <img src="${screenshot}" class="w-full rounded-lg mb-4" onerror="this.src='https://via.placeholder.com/600x300'">
+                    <p class="text-slate-300">${document.getElementById('appDescription').value}</p>
+                </div>
+            `;
+            
+            document.getElementById('previewContent').innerHTML = content;
+            document.getElementById('previewModal').classList.remove('hidden');
+            document.getElementById('previewModal').classList.add('flex');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.add('hidden');
+            document.getElementById('previewModal').classList.remove('flex');
+        }
+
+        // Add App Handler
+        async function handleAddApp(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitAppBtn');
+            
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري الرفع...';
+            submitBtn.disabled = true;
+
+            const screenshots = document.getElementById('appScreenshots').value
+                .split(',').map(s => s.trim()).filter(s => s) || [];
+            
+            const appData = {
+                name: document.getElementById('appName').value.trim(),
+                developer: document.getElementById('appDeveloper').value.trim(),
+                size: document.getElementById('appSize').value.trim(),
+                category: document.getElementById('appCategory').value,
+                version: document.getElementById('appVersion').value || '1.0.0',
+                icon: document.getElementById('appIcon').value.trim(),
+                screenshot: document.getElementById('appScreenshot').value.trim(),
+                screenshots: screenshots.length > 0 ? screenshots : [document.getElementById('appScreenshot').value.trim()],
+                downloadUrl: document.getElementById('appDownload').value.trim(),
+                description: document.getElementById('appDescription').value.trim(),
+                downloads: 0,
+                views: 0,
+                rating: 0,
+                reviews: 0,
+                createdAt: Date.now(),
+                createdBy: currentUser.email
+            };
+
+            try {
+                const newAppRef = database.ref('apps').push();
+                await newAppRef.set(appData);
+                showToast('تم إضافة التطبيق بنجاح!');
+                clearForm();
+                loadAppsList();
+                loadStats();
+                addActivity('تم إضافة تطبيق جديد', appData.name);
+            } catch (error) {
+                showToast('حدث خطأ: ' + error.message, 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Clear Form
+        function clearForm() {
+            document.getElementById('addAppForm').reset();
+            document.getElementById('descCount').textContent = '0';
+        }
+
+        // Load Apps List
+        function loadAppsList() {
+            const list = document.getElementById('appsList');
+            const emptyState = document.getElementById('emptyAppsList');
+            
+            list.innerHTML = '<div class="flex justify-center py-8"><div class="loading-spinner"></div></div>';
+
+            database.ref('apps').once('value').then((snapshot) => {
+                const apps = snapshot.val();
+                list.innerHTML = '';
+                allAppsData = [];
+                
+                if (!apps) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                const appsArray = Object.entries(apps);
+                
+                appsArray.forEach(([id, app]) => {
+                    allAppsData.push({ id, ...app });
+                });
+                
+                // Sort by newest
+                allAppsData.sort((a, b) => b.createdAt - a.createdAt);
+                
+                renderAppsList(allAppsData);
+            });
+        }
+
+        // Render Apps List
+        function renderAppsList(apps) {
+            const list = document.getElementById('appsList');
+            list.innerHTML = '';
+            
+            apps.forEach((app) => {
+                const item = createAppListItem(app);
+                list.appendChild(item);
+            });
+        }
+
+        // Create App List Item
+        function createAppListItem(app) {
+            const div = document.createElement('div');
+            div.className = 'app-item flex items-center justify-between p-4 rounded-xl';
+            
+            const date = new Date(app.createdAt).toLocaleDateString('ar-SA');
+            
+            div.innerHTML = `
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <img src="${app.icon}" alt="${app.name}" class="w-12 h-12 rounded-lg object-cover border border-slate-600" onerror="this.src='https://via.placeholder.com/48/1e293b/475569?text=App'">
+                    <div>
+                        <h4 class="font-bold text-lg text-slate-100">${app.name}</h4>
+                        <div class="flex items-center gap-3 text-sm text-slate-400">
+                            <span>${app.developer}</span>
+                            <span>•</span>
+                            <span>${app.size}</span>
+                            <span>•</span>
+                            <span>${date}</span>
+                            <span class="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-xs">${app.downloads || 0} تحميل</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <a href="app.html?id=${app.id}" target="_blank" class="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition" title="عرض">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <button onclick="editApp('${app.id}')" class="p-2 text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="openDeleteModal('${app.id}')" class="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition" title="حذف">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+            return div;
+        }
+
+        // Search Admin Apps
+        function searchAdminApps() {
+            const query = document.getElementById('adminSearch').value.toLowerCase();
+            const filtered = allAppsData.filter(app => 
+                app.name.toLowerCase().includes(query) || 
+                app.developer.toLowerCase().includes(query)
+            );
+            renderAppsList(filtered);
+        }
+
+        // Edit App (Placeholder)
+        function editApp(appId) {
+            showToast('ميزة التعديل قريباً!', 'info');
+        }
+
+        // Export Data
+        function exportData() {
+            const dataStr = JSON.stringify(allAppsData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `apps_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            showToast('تم تصدير البيانات بنجاح');
+        }
+
+        // Backup Data
+        function backupData() {
+            showToast('جاري إنشاء نسخة احتياطية...', 'info');
+            setTimeout(() => showToast('تم إنشاء النسخة الاحتياطية'), 1500);
+        }
+
+        // Clear Cache
+        function clearCache() {
+            showToast('تم مسح الذاكرة المؤقتة', 'success');
+        }
+
+        // View Analytics
+        function viewAnalytics() {
+            showToast('جاري تحميل التحليلات...', 'info');
+        }
+
+        // Add Activity
+        function addActivity(action, detail) {
+            const container = document.getElementById('activityLog');
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <div class="flex justify-between items-start mb-1">
+                    <span class="text-sm font-bold text-slate-200">${action}</span>
+                    <span class="text-xs text-slate-500">الآن</span>
+                </div>
+                <p class="text-xs text-slate-400">${detail}</p>
+            `;
+            container.insertBefore(item, container.firstChild);
+        }
+
+        // Delete Modal Functions
+        function openDeleteModal(appId) {
+            appToDelete = appId;
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            appToDelete = null;
+            document.getElementById('deleteModal').classList.add('hidden');
+            document.getElementById('deleteModal').classList.remove('flex');
+        }
+
+        async function confirmDelete() {
+            if (!appToDelete) return;
+            
+            try {
+                await database.ref(`apps/${appToDelete}`).remove();
+                showToast('تم حذف التطبيق بنجاح');
+                loadAppsList();
+                loadStats();
+                const app = allAppsData.find(a => a.id === appToDelete);
+                if (app) addActivity('تم حذف تطبيق', app.name);
+            } catch (error) {
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            } finally {
+                closeDeleteModal();
+            }
+        }
+
+        // Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            const colors = {
+                success: 'bg-emerald-600 border-emerald-500',
+                error: 'bg-red-600 border-red-500',
+                info: 'bg-blue-600 border-blue-500'
+            };
+            
+            toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 z-50 border ${colors[type]} text-white`;
+            
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('deleteModal')) {
+                closeDeleteModal();
+            }
+            if (event.target === document.getElementById('previewModal')) {
+                closePreview();
+            }
+        }
+    </script>
+</body>
+</html>
